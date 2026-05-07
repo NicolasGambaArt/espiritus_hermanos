@@ -84,8 +84,8 @@ async function initAudio() {
 
     const keys = Object.keys(LAYERS);
     await Promise.all(keys.map(async key => {
-      const res = await fetch(`assets/loop-${key}.wav`);
-      if (!res.ok) throw new Error(`HTTP ${res.status} en loop-${key}.wav`);
+      const res = await fetch(`assets/loop-${key}.flac`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} en loop-${key}.flac`);
       const arrBuf = await res.arrayBuffer();
       buffers[key] = await new Promise((resolve, reject) => {
         audioCtx.decodeAudioData(arrBuf, resolve, reject);
@@ -150,6 +150,24 @@ function unlockAudio() {
       .catch(e => console.warn('[audio] resume() falló:', e && e.message));
   } else if (audioCtx) {
     console.log('[audio] AudioContext ya estaba running');
+  }
+
+  // 3) iOS Safari unlock canónico: tocar un buffer de silencio de 1 sample.
+  //    Esto fuerza al engine de audio de iOS a "abrirse" — sin esto, en
+  //    iPhones con cualquier estado raro (modo silencio reciente, llamada
+  //    interrumpida, app en background) el AudioContext queda en zombie:
+  //    .state dice 'running' pero las pistas suenan en silencio.
+  if (audioCtx) {
+    try {
+      const silentBuf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate || 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = silentBuf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+      src.onended = () => { try { src.disconnect(); } catch (_) {} };
+    } catch (e) {
+      console.warn('[audio] silent-buffer unlock falló:', e && e.message);
+    }
   }
 }
 
