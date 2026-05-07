@@ -88,8 +88,6 @@ async function initAudio() {
       if (!res.ok) throw new Error(`HTTP ${res.status} en loop-${key}.wav`);
       const arrBuf = await res.arrayBuffer();
       buffers[key] = await new Promise((resolve, reject) => {
-        /* decodeAudioData: descarta el padding del encoder Vorbis y
-           entrega PCM exacto. source.loop=true loopea sin silencio. */
         audioCtx.decodeAudioData(arrBuf, resolve, reject);
       });
     }));
@@ -111,12 +109,59 @@ async function initAudio() {
   } catch (err) {
     useWebAudio = false;
     console.warn('[audio] Web Audio no disponible:', err.message);
-    console.warn('[audio] Usando <audio> element (con gap de Vorbis). Para loops sin gap, sirve desde un servidor: python -m http.server');
+    console.warn('[audio] Usando <audio> element como fallback. Considera servir desde HTTPS si Web Audio falló.');
+  }
+}
+
+/* Unlock comprehensive: garantiza que tanto Web Audio como los
+   elementos <audio> queden habilitados para reproducción. Llamar
+   SIEMPRE dentro de un gesto de usuario (click/touch). En navegadores
+   con políticas estrictas de autoplay (iOS Safari) este es el momento
+   crítico — si no se hace aquí, no habrá sonido en las interacciones
+   posteriores.
+
+   Orden importante: ambas llamadas (play() de <audio> y resume() del
+   AudioContext) se hacen SÍNCRONAMENTE, sin await previo, para que
+   ambas hereden el token de gesto del usuario (algunos browsers
+   "pierden" ese token tras el primer await). */
+function unlockAudio() {
+  // 1) Elementos <audio>: trigger play/pause silencioso para "registrarlos"
+  //    con la autoplay policy del navegador. Permite que .play() posterior
+  //    desde código (no-gesto) funcione sin bloquearse.
+  Object.keys(LAYERS).forEach(k => {
+    const el = audioEl(k);
+    if (!el) return;
+    try {
+      el.muted = true;
+      const p = el.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => { el.pause(); el.currentTime = 0; el.muted = false; })
+         .catch(() => { el.muted = false; });
+      } else {
+        el.pause(); el.currentTime = 0; el.muted = false;
+      }
+    } catch (_) { el.muted = false; }
+  });
+
+  // 2) Web Audio: resume si está suspended/interrupted/etc.
+  if (audioCtx && audioCtx.state !== 'running') {
+    audioCtx.resume()
+      .then(()  => console.log('[audio] AudioContext →', audioCtx.state))
+      .catch(e => console.warn('[audio] resume() falló:', e && e.message));
+  } else if (audioCtx) {
+    console.log('[audio] AudioContext ya estaba running');
   }
 }
 
 function audioStart(key, offset) {
   const target = (typeof offset === 'number') ? offset : currentLoopOffset();
+
+  /* Diagnóstico: si Web Audio falló o el buffer aún no decodificó,
+     se cae al <audio> element. Logueamos para que cualquier usuario
+     que reporte "no oigo nada" pueda mirar la consola. */
+  if (useWebAudio && !buffers[key]) {
+    console.warn('[audio] buffer no listo aún para', key, '— usando fallback <audio>');
+  }
 
   if (useWebAudio && buffers[key]) {
     /* Detiene cualquier source previa de esta misma clave */
@@ -223,7 +268,7 @@ function pauseAllAudios() {
 
 function resumeActiveAudios() {
   if (useWebAudio) {
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx && audioCtx.state !== 'running') audioCtx.resume().catch(()=>{});
     return;
   }
   Object.entries(maskChar).forEach(([mask, rup]) => {
@@ -331,8 +376,11 @@ function applyMask(mask, rupId) {
         arranca el tempo YA y activa este rupestre en el offset 0
         — sin esperar al próximo gate — para respuesta inmediata. */
   if (!audioRunning) {
-    /* Web Audio requiere gesto de usuario para arrancar el contexto */
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    /* Web Audio requiere gesto de usuario para arrancar el contexto.
+       Cubre 'suspended', 'interrupted' (iOS) y cualquier estado != running. */
+    if (audioCtx && audioCtx.state !== 'running') {
+      audioCtx.resume().catch(e => console.warn('[audio] resume falló:', e.message));
+    }
 
     pausedAccumMs += (performance.now() - pausedAtMs);
     pausedAtMs = null;
@@ -541,6 +589,10 @@ function ocultarPreludio() {
   preludioOculto = true;
   document.getElementById('preludio')?.classList.add('oculto');
   document.getElementById('preludio-overlay')?.classList.add('oculto');
+  /* Unlock crítico: este es el primer gesto del usuario. Si no
+     desbloqueamos AQUÍ, iOS Safari y otros mantendrán el audio
+     bloqueado y los drags posteriores fallarán silenciosamente. */
+  unlockAudio();
 }
 
 function abrirModal() {
