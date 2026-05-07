@@ -464,24 +464,6 @@ function togglePause() {
 let drag = null;
 let ghost = null;
 let ghostImg = null;
-
-/* En mobile portrait el body está rotado 90° cw vía CSS para forzar
-   landscape. clientX/clientY llegan en coords físicas de pantalla, pero
-   el ghost está dentro del body rotado: hay que mapear al sistema local
-   del body para que aparezca bajo el dedo. */
-function portraitLocked() {
-  return window.matchMedia('(orientation: portrait) and (max-width: 900px)').matches;
-}
-function setGhostPos(clientX, clientY) {
-  if (portraitLocked()) {
-    /* body rotado 90° cw → screen (sx,sy) = body-local (sy, innerWidth - sx) */
-    ghost.style.left = clientY + 'px';
-    ghost.style.top  = (window.innerWidth - clientX) + 'px';
-  } else {
-    ghost.style.left = clientX + 'px';
-    ghost.style.top  = clientY + 'px';
-  }
-}
 let lastDropTime = 0;
 
 function onPointerDown(e) {
@@ -494,7 +476,8 @@ function onPointerDown(e) {
   ghost = document.getElementById('drag-ghost');
   ghostImg = ghost.querySelector('img');
   ghostImg.src = slot.querySelector('img').src;
-  setGhostPos(e.clientX, e.clientY);
+  ghost.style.left = e.clientX + 'px';
+  ghost.style.top  = e.clientY + 'px';
   ghost.style.display = 'block';
   document.body.classList.add('is-dragging');
   slot.setPointerCapture(e.pointerId);
@@ -503,7 +486,8 @@ function onPointerDown(e) {
 function onPointerMove(e) {
   if (!drag) return;
   e.preventDefault();
-  setGhostPos(e.clientX, e.clientY);
+  ghost.style.left = e.clientX + 'px';
+  ghost.style.top  = e.clientY + 'px';
   document.querySelectorAll('.char-layer').forEach(l => l.classList.remove('dragover'));
   const hs = getHotspotAt(e.clientX, e.clientY);
   if (hs) {

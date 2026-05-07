@@ -68,32 +68,14 @@
   const $lienzo = document.querySelector('.lienzo');
 
   // ---------- helpers coordenadas ----------
-  // En mobile portrait, el body está rotado 90° cw vía CSS para forzar
-  // landscape. Las coords del pointer llegan en espacio físico de pantalla;
-  // hay que invertir la rotación para obtener coords en el sistema lógico
-  // del lienzo (post-rotación).
-  const portraitLocked = () =>
-    window.matchMedia('(orientation: portrait) and (max-width: 900px)').matches;
-
   const coords = (evt) => {
     const rect = $lienzo.getBoundingClientRect();
     const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
     const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
-    const sx = clientX - rect.left;
-    const sy = clientY - rect.top;
-    if (portraitLocked()) {
-      // body rotado 90° cw → mapeo: lógicaX = sy, lógicaY = rect.width - sx
-      const x  = sy;
-      const y  = rect.width - sx;
-      return {
-        x, y,
-        y01: Math.max(0, Math.min(1, y / rect.width)),
-      };
-    }
     return {
-      x: sx,
-      y: sy,
-      y01: Math.max(0, Math.min(1, sy / rect.height)),
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      y01: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)),
     };
   };
 
