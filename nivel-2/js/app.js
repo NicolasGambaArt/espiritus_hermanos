@@ -79,17 +79,26 @@
     };
   };
 
-  const ocultarPreludio = () => {
+  // El preludio ahora es un modal de bienvenida con su propio botón
+  // "Comenzar". Se queda visible hasta que el usuario lo pulsa.
+  const $preludioOverlay = document.getElementById('preludio-overlay');
+  const ocultarPreludio = async () => {
     if (preludioOculto) return;
     preludioOculto = true;
+    // Inicia el audio dentro del gesto del usuario (requisito navegador)
+    try { await Audio.iniciar(); } catch (_) {}
     $preludio.classList.add('oculto');
+    if ($preludioOverlay) $preludioOverlay.classList.add('oculto');
   };
+  document.getElementById('btn-comenzar')?.addEventListener('click', ocultarPreludio);
 
   // ---------- start/move/end ----------
   const empezar = async (evt) => {
+    // Bloquea cualquier interacción mientras el modal de bienvenida esté
+    // visible: nada de pintar/sonar hasta que el usuario pulse "Comenzar".
+    if (!preludioOculto) return;
     evt.preventDefault();
     await Audio.iniciar();
-    ocultarPreludio();
 
     const { x, y, y01 } = coords(evt);
     dibujando = true;

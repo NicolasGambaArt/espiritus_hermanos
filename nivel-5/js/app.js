@@ -469,8 +469,10 @@ let lastDropTime = 0;
 function onPointerDown(e) {
   const slot = e.currentTarget;
   if (slot.classList.contains('disabled')) return;
+  /* Bloquea cualquier drag mientras el modal de bienvenida esté visible:
+     no se pueden agarrar máscaras hasta pulsar "Comenzar". */
+  if (!preludioOculto) return;
   e.preventDefault(); e.stopPropagation();
-  ocultarPreludio();
 
   drag = { mask: slot.dataset.mask };
   ghost = document.getElementById('drag-ghost');
@@ -538,6 +540,7 @@ function ocultarPreludio() {
   if (preludioOculto) return;
   preludioOculto = true;
   document.getElementById('preludio')?.classList.add('oculto');
+  document.getElementById('preludio-overlay')?.classList.add('oculto');
 }
 
 function abrirModal() {
@@ -594,6 +597,7 @@ function init() {
   });
 
   document.getElementById('btn-pause')?.addEventListener('click', togglePause);
+  document.getElementById('btn-comenzar')?.addEventListener('click', ocultarPreludio);
 
   document.getElementById('btn-fullscreen')?.addEventListener('click', toggleFullscreen);
   ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange'].forEach(ev =>

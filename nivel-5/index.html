@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>El canto de los Espíritus</title>
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -40,15 +40,25 @@
       <div class="drop-hotspot" data-rupestre="m2" data-zone="ama"></div>
       <div class="drop-hotspot" data-rupestre="m3" data-zone="ama"></div>
 
-      <!-- Preludio -->
-      <header class="preludio" id="preludio">
-        <div class="preludio__nivel">Nivel 5</div>
-        <div class="preludio__titulo">El Canto de los Espíritus</div>
-        <div class="preludio__instruccion">
-          Despierta los espíritus del territorio<br>
-          arrastra las máscaras a los dibujos rupestres
-        </div>
-      </header>
+      <!-- Preludio — modal de bienvenida, desaparece al pulsar "Comenzar" -->
+      <div class="preludio-overlay" id="preludio-overlay" aria-hidden="false">
+        <header class="preludio" id="preludio">
+          <div class="preludio__nivel">Nivel 5</div>
+          <div class="preludio__titulo">El Canto de los Espíritus</div>
+          <div class="preludio__instruccion">
+            Despierta los espíritus del territorio<br>
+            arrastra las máscaras a los dibujos rupestres
+          </div>
+          <div class="preludio__cta">
+            <button class="btn-comenzar" id="btn-comenzar" type="button">Comenzar</button>
+            <svg class="orient-anim" viewBox="0 0 64 100" width="44" height="68" aria-hidden="true">
+              <rect x="6" y="4" width="52" height="92" rx="8" ry="8" fill="none" stroke="currentColor" stroke-width="2.6"/>
+              <line x1="26" y1="11" x2="38" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="32" cy="89" r="2.2" fill="currentColor"/>
+            </svg>
+          </div>
+        </header>
+      </div>
 
 
 <footer class="sello" aria-hidden="true">
@@ -133,6 +143,6 @@
   <audio id="aud-pac-sinte"  src="assets/loop-pac-sinte.wav" loop preload="auto"></audio>
   <audio id="aud-ama-sinte"  src="assets/loop-ama-sinte.wav" loop preload="auto"></audio>
 
-  <script src="js/app.js?v=12"></script>
+  <script src="js/app.js?v=14"></script>
 </body>
 </html>
